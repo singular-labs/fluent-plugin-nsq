@@ -56,7 +56,7 @@ module Fluent::Plugin
 
     def write(chunk)
       return if chunk.empty?
-
+      log.info("ezequiel - write!")
       message_batch = []
 
       chunk.msgpack_each do |tag, time, record|
