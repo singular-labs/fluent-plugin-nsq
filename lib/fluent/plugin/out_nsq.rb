@@ -55,6 +55,7 @@ module Fluent::Plugin
     end
 
     def write(chunk)
+      log.info("ezequiel - write!")
       return if chunk.empty?
       log.info("ezequiel - write!")
       message_batch = []
