@@ -8,8 +8,6 @@ module Fluent::Plugin
 
     config_param :topic, :string, default: nil
     config_param :nsqd, :string, default: nil
-    config_param :use_tls, :bool, default: false
-    config_param :tls_options, :hash, default: nil, symbolize_keys: true
 
     helpers :compat_parameters, :inject
 
@@ -25,14 +23,11 @@ module Fluent::Plugin
       compat_parameters_convert(conf, :buffer, :inject)
       super
 
-      log.info("nsq: configure called! @nsqd=#{@nsqd}, @topic=#{@topic}, @use_tls=#{@use_tls}, @tls_options=#{@tls_options}")
+      log.info("nsq: configure called! @nsqd=#{@nsqd}, @topic=#{@topic}")
 
       fail ConfigError, 'Missing nsqd' unless @nsqd
       fail ConfigError, 'Missing topic' unless @topic
 
-      if @use_tls
-        fail ConfigError, 'Missing TLS options' unless @tls_options
-      end
     end
 
     def start
@@ -75,8 +70,6 @@ module Fluent::Plugin
       topic = extract_placeholders(@topic, chunk.metadata)
 
       log.debug("nsq: posting #{message_batch.length} messages to topic #{topic}")
-
-
 
       write_to_topic_http topic, message_batch
     end
