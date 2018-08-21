@@ -13,7 +13,6 @@ module Fluent::Plugin
 
     def initialize
       super
-      require 'nsq'
       require 'yajl'
 
       log.info("nsq: initialize called!")
