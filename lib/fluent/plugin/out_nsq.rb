@@ -76,8 +76,6 @@ module Fluent::Plugin
 
       log.debug("nsq: posting #{message_batch.length} messages to topic #{topic}")
 
-
-
       write_to_topic_http topic, message_batch
     end
 
