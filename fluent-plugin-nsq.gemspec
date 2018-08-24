@@ -21,6 +21,5 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'nsq-ruby', '~> 2.2'
   s.add_runtime_dependency 'rest-client', '~> 2.0.2'
   s.add_development_dependency 'rake', '~> 10'
-  s.add_development_dependency 'rspec'
 
 end

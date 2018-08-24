@@ -6,7 +6,7 @@ require 'fluent/plugin/out_nsq'
 class TestNSQOutput < Test::Unit::TestCase
   BASE_CONFIG = %[
     nsqd localhost:4151
-    topic logs_out
+    topic aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
   ]
 
   include Fluent::Test::Helpers
@@ -16,11 +16,7 @@ class TestNSQOutput < Test::Unit::TestCase
   end
 
   def create_driver(conf = {})
-    Fluent::Test::Driver::Output.new(Fluent::Plugin::NSQOutput) do
-      def write(chunk)
-        chunk.read
-      end
-    end.configure(conf)
+    Fluent::Test::Driver::Output.new(Fluent::Plugin::NSQOutput).configure(conf)
   end
 
   test 'emit' do

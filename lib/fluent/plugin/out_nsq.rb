@@ -63,9 +63,9 @@ module Fluent::Plugin
       chunk.msgpack_each do |tag, time, record|
         next unless record.is_a? Hash
         record.update(
-          :_key => tag,
-          :_ts => time,
-          :'@timestamp' => Time.at(time).to_datetime.to_s  # kibana/elasticsearch friendly
+            :_key => tag,
+            :_ts => time,
+            :'@timestamp' => Time.at(time).to_datetime.to_s # kibana/elasticsearch friendly
         )
         serialized_record = Yajl.dump(record)
 
@@ -82,7 +82,7 @@ module Fluent::Plugin
     def write_to_topic_http(topic, messages)
       messages = messages.map(&:to_s)
       if messages.length > 1
-        payload =  messages.join("\n")
+        payload = messages.join("\n")
         endpoint = "mpub"
       else
         payload = messages.first
@@ -94,7 +94,11 @@ module Fluent::Plugin
       log.debug("url: #{url}")
       log.debug("payload: #{payload}")
 
-      RestClient.post(url, payload, headers={})
+      RestClient.post(url, payload, headers = {})
+
+    rescue => e
+      log.warn("nsq: #{e}")
+      msg.requeue if msg
     end
   end
 end
