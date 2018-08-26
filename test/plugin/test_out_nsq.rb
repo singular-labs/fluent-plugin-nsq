@@ -6,7 +6,7 @@ require 'fluent/plugin/out_nsq'
 class TestNSQOutput < Test::Unit::TestCase
   BASE_CONFIG = %[
     nsqd localhost:4151
-    topic aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    topic test
   ]
 
   include Fluent::Test::Helpers
@@ -21,12 +21,10 @@ class TestNSQOutput < Test::Unit::TestCase
 
   test 'emit' do
     d = create_driver(config = BASE_CONFIG)
-    time = event_time
+    es = Fluent::OneEventStream.new(event_time, { "message" => "Hello, Fluentd!!" })
     d.run do
-      d.feed("output.test", time, {'foo' => 'bar', 'message' => 'bla'})
+      d.feed("test", es)
     end
-
-    assert_equal(1, d.events.size)
   end
 
   def assert_received_by_nsq(nsqd_host, topic, messages)

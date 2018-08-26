@@ -9,7 +9,6 @@ services:
   nsqd:
     image: nsqio/nsq:v0.3.8
     command: /nsqd --lookupd-tcp-address=nsqlookupd:4160
-    hostname: Gals-MacBook-Pro-2.local
     depends_on:
     - nsqlookupd
     ports:
@@ -22,3 +21,10 @@ services:
     - nsqlookupd
     ports:
     - "4171:4171"
+  nsq_to_file:
+    image: nsqio/nsq:v0.3.8
+    command: /nsq_to_file --topic=test --output-dir=/tmp --filename-format=fps.<HOST>.<DATETIME>.<REV>.log --nsqd-tcp-address=nsqd:4150
+    volumes:
+      - /tmp/fluent-plugin-nsq-tests:/tmp
+    depends_on:
+    - nsqd
