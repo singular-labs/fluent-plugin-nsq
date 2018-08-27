@@ -31,12 +31,30 @@ class TestNSQOutput < Test::Unit::TestCase
     'test_' + SecureRandom.hex[0, 10]
   end
 
-  def create_driver(conf = {})
-    Fluent::Test::Driver::Output.new(Fluent::Plugin::NSQOutput).configure(conf)
+  def create_driver(conf = {}, handle_write_errors = false)
+    if !handle_write_errors
+      Fluent::Test::Driver::Output.new(Fluent::Plugin::NSQOutput).configure(conf)
+    else
+      d = Fluent::Test::Driver::Output.new(Fluent::Plugin::NSQOutput) do
+        alias old_write write
+
+        def raised_exceptions
+          return @raised_exceptions
+        end
+
+        def write(chunk)
+          @raised_exceptions = []
+          old_write chunk
+        rescue => e
+          @raised_exceptions << e
+        end
+      end
+      d.configure(conf)
+    end
   end
 
-  def send_messages(driver, messages, tag='test')
-    messages_records = messages.map{|message| [event_time, { "message" => message }]}
+  def send_messages(driver, messages, tag = 'test')
+    messages_records = messages.map {|message| [event_time, {"message" => message}]}
     es = Fluent::ArrayEventStream.new(messages_records)
     driver.run do
       driver.feed(tag, es)
@@ -78,18 +96,24 @@ class TestNSQOutput < Test::Unit::TestCase
     test_id = get_random_test_id
     d = create_driver(config = create_config_for_topic(test_id))
 
-    messages = Set['message1' ,'message2' ,'message3']
+    messages = Set['message1', 'message2', 'message3']
     send_messages(d, messages)
 
     assert_received_by_nsq(test_id, messages)
   end
 
-  test 'send messages - too long topic name' do
+  test 'send messages with too-long topic' do
 
-    d = create_driver(config = create_config_for_topic("a" * 65))
-    messages = Set['message1' ,'message2' ,'message3']
+    d = create_driver(create_config_for_topic("a" * 65), handle_write_errors=true)
+
+    messages = Set['message1', 'message2', 'message3']
     send_messages(d, messages)
 
-  end
+    raised_exception = d.instance.raised_exceptions.first
+    assert_not_nil(raised_exception)
+    assert_kind_of(RestClient::RequestFailed, raised_exception)
+    assert_not_nil(raised_exception.response)
+    assert_includes(raised_exception.response.to_s, "INVALID_TOPIC")
 
+  end
 end
