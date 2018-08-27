@@ -1,6 +1,12 @@
 # coding: utf-8
 
 module Fluent::Plugin
+  class WriteToNsqError < StandardError
+    def initialize(msg="NSQD returned an error")
+      super
+    end
+  end
+
   class NSQOutput < Output
     Fluent::Plugin.register_output('nsq', self)
 
@@ -96,9 +102,9 @@ module Fluent::Plugin
 
       RestClient.post(url, payload, headers = {})
 
-    rescue => e
-      log.warn("nsq: #{e}")
-      msg.requeue if msg
+    rescue RestClient::RequestFailed => e
+      e.message = e.response.to_s
+      raise e
     end
   end
 end

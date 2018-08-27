@@ -23,7 +23,7 @@ services:
     - "4171:4171"
   nsq_to_file:
     image: nsqio/nsq:v0.3.8
-    command: /nsq_to_file --topic=test --output-dir=/tmp --filename-format=fps.<HOST>.<DATETIME>.<REV>.log --nsqd-tcp-address=nsqd:4150
+    command: /nsq_to_file --topic-refresh=1s --lookupd-http-address=nsqlookupd:4161 --topic-pattern=test_* --output-dir=/tmp --filename-format=<TOPIC>.log
     volumes:
       - /tmp/fluent-plugin-nsq-tests:/tmp
     depends_on:
