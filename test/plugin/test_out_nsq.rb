@@ -8,6 +8,9 @@ require 'json'
 class TestNSQOutput < Test::Unit::TestCase
 
   LOGS_DIR = '/tmp/fluent-plugin-nsq-tests'
+  MAX_TOPIC_LENGTH = 64
+  MAX_MESSAGE_SIZE = 1024
+  MAX_BODY_SIZE = 5 * 1024
 
   include Fluent::Test::Helpers
 
@@ -61,11 +64,17 @@ class TestNSQOutput < Test::Unit::TestCase
     end
   end
 
-  def assert_received_by_nsq(test_id, messages)
+  def assert_messages_received(test_id, messages)
     wait_for_queue_to_clean test_id
     log_file_loc = "#{LOGS_DIR}/#{test_id}.log"
     assert_equal(true, File.file?(log_file_loc), "log file doesn't exists for test_id: #{log_file_loc}")
     assert_all_messages_in_file(messages, log_file_loc)
+  end
+
+  def assert_no_messages_received(topic)
+    wait_for_queue_to_clean topic
+    log_file_loc = "#{LOGS_DIR}/#{topic}.log"
+    assert_equal(false, File.file?(log_file_loc), "log file exists although it should not: #{log_file_loc}")
   end
 
   def assert_all_messages_in_file(messages, log_file_loc)
@@ -89,7 +98,15 @@ class TestNSQOutput < Test::Unit::TestCase
   end
 
   def wait_for_queue_to_clean(topic)
-    sleep(5)
+    sleep(2)
+  end
+
+  def assert_request_failed(driver, expected_message)
+    assert_equal(1, driver.instance.raised_exceptions.length)
+    raised_exception = driver.instance.raised_exceptions.first
+    assert_kind_of(RestClient::RequestFailed, raised_exception)
+    assert_not_nil(raised_exception.response)
+    assert_includes(raised_exception.response.to_s, expected_message)
   end
 
   test 'send messages to nsq' do
@@ -99,21 +116,41 @@ class TestNSQOutput < Test::Unit::TestCase
     messages = Set['message1', 'message2', 'message3']
     send_messages(d, messages)
 
-    assert_received_by_nsq(test_id, messages)
+    assert_messages_received(test_id, messages)
   end
 
-  test 'send messages with too-long topic' do
-
-    d = create_driver(create_config_for_topic("a" * 65), handle_write_errors=true)
+  test 'send messages with a topic that exceeds 64 chars' do
+    too_long_topic_name = "a" * (MAX_TOPIC_LENGTH + 1)
+    d = create_driver(create_config_for_topic(too_long_topic_name), handle_write_errors=true)
 
     messages = Set['message1', 'message2', 'message3']
     send_messages(d, messages)
 
-    raised_exception = d.instance.raised_exceptions.first
-    assert_not_nil(raised_exception)
-    assert_kind_of(RestClient::RequestFailed, raised_exception)
-    assert_not_nil(raised_exception.response)
-    assert_includes(raised_exception.response.to_s, "INVALID_TOPIC")
-
+    assert_request_failed(d, "INVALID_TOPIC")
+    assert_no_messages_received(too_long_topic_name)
   end
+
+  test 'send a message with a length that exceeds MAX_MESSAGE_SIZE' do
+    test_id = get_random_test_id
+    d = create_driver(config = create_config_for_topic(test_id), handle_write_errors=true)
+
+    too_big_message = "a" * (MAX_MESSAGE_SIZE + 1)
+    messages = Set[too_big_message]
+    send_messages(d, messages)
+
+    assert_request_failed(d, "MSG_TOO_BIG")
+    assert_no_messages_received(test_id)
+  end
+
+  test 'send messages with a total sum that exceeds MAX_BODY_SIZE' do
+    test_id = get_random_test_id
+    d = create_driver(config = create_config_for_topic(test_id), handle_write_errors=true)
+
+    messages = Array.new(MAX_BODY_SIZE, "a")
+    send_messages(d, messages)
+
+    assert_request_failed(d, "BODY_TOO_BIG")
+    assert_no_messages_received(test_id)
+  end
+
 end
