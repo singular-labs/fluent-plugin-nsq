@@ -55,7 +55,7 @@ module Fluent::Plugin
 
     def write(chunk)
 
-      log.info("nsq: write began!")
+      log.debug("nsq: write began!")
 
       return if chunk.empty?
 
