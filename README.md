@@ -1,4 +1,6 @@
-# NSQ plugin for Fluentd
+# NSQ plugin for Fluentd - Singular version
+
+This plugin was forked, adjusted to use nsq-http, for more relliable connectivity
 
 Input and Output plugins for [nsq](http://nsq.io).
 
